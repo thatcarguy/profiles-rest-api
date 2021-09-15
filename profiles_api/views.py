@@ -6,6 +6,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework import filters
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.settings import api_settings
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from profiles_api import serializers
 from profiles_api import models
@@ -94,7 +95,7 @@ class HelloViewSet(viewsets.ViewSet):
 
 
 # Here we are setting up all our configs for our /api/profile endpoint. 
-# Added serializer to serialize request
+# set which serializer to use
 # queryset name
 # made it use tokenauthentication
 # Has it check permissions from our UpdateOwnProfile permissions class
@@ -112,3 +113,21 @@ class UserProfilesViewSet(viewsets.ModelViewSet):
 class UserLoginApiView(ObtainAuthToken):
     """Handle creating user authentication tokens"""
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+
+
+class UserProfileFeedViewSet(viewsets.ModelViewSet):
+    """Handles creating, reading, and updating profile feed items"""
+    authentication_classes = (TokenAuthentication,)
+    serializer_class = serializers.ProfileFeedItemSerializer
+    queryset = models.ProfileFeedItem.objects.all()
+    permission_classes = (
+        permissions.UpdateOwnStatus,
+        IsAuthenticatedOrReadOnly,
+    )
+
+    def perform_create(self, serializer):
+        """Sets the user profile to logged in user"""
+        #saves it and sets userprofile to itself so it knows which user to update
+        #knows the user based off authentication
+        serializer.save(user_profile=self.request.user)
+
